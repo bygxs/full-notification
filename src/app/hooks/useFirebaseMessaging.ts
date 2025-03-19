@@ -68,28 +68,30 @@ const useFirebaseMessaging = (): UseFirebaseMessagingReturn => {
 
   useEffect(() => {
     // Handle foreground messages
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log('Message received in foreground:', payload);
-      
-      setNotificationMessage({
-        title: payload.notification?.title,
-        body: payload.notification?.body,
-        image: payload.notification?.image,
-        data: payload.data,
-      });
-      
-      // Optionally, you can also show a notification even in foreground
-      if (Notification.permission === 'granted') {
-        new Notification(payload.notification?.title || 'New Notification', {
+    if (messaging) {
+      const unsubscribe = onMessage(messaging, (payload) => {
+        console.log('Message received in foreground:', payload);
+        
+        setNotificationMessage({
+          title: payload.notification?.title,
           body: payload.notification?.body,
-          icon: '/icons/notification-icon.png',
+          image: payload.notification?.image,
+          data: payload.data,
         });
-      }
-    });
+        
+        // Optionally, you can also show a notification even in foreground
+        if (Notification.permission === 'granted') {
+          new Notification(payload.notification?.title || 'New Notification', {
+            body: payload.notification?.body,
+            icon: '/icons/notification-icon.png',
+          });
+        }
+      });
 
-    return () => {
-      unsubscribe();
-    };
+      return () => {
+        unsubscribe();
+      };
+    }
   }, []);
 
   return {

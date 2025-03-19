@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { NotificationPermissionButton, NotificationDisplay, useNotification } from '@/components/ui/Notification';
+import { NotificationPermissionButton, NotificationDisplay, useNotification } from './components/Notification';
 
 export default function Home() {
   const { token } = useNotification();

@@ -1,6 +1,6 @@
 {
     "name": "My App with Notifications",
-    "short_name": "MyApp",
+    "short_name": "MyNotificationApp",
     "theme_color": "#ffffff",
     "background_color": "#ffffff",
     "display": "standalone",

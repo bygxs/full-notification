@@ -1,4 +1,5 @@
 // components/ui/Notification.tsx
+"use client"
 import React, { createContext, useContext, useState, useEffect } from "react";
 import useFirebaseMessaging from "../hooks/useFirebaseMessaging";
 

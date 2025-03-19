@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
+import { Notification } from "./components/Notification";
+import { NotificationPermissionButton } from "./components/Notification";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -27,7 +28,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <main>{children}</main>
+        {/* Add this at the end of your body */}
+        <Notification />
+
+        {/* Add this wherever you want the permission button to appear */}
+        <div className="fixed bottom-4 right-4">
+          <NotificationPermissionButton />
+        </div>
       </body>
     </html>
   );

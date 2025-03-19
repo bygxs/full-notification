@@ -1,109 +1,106 @@
-// Step 7: Create a test page to verify your setup
-// app/test-notifications/page.tsx
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useFirebaseMessaging } from "./hooks/useFirebaseMessaging";
+import { useState, useEffect } from 'react';
+import { NotificationPermissionButton, NotificationDisplay, useNotification } from '@/components/ui/Notification';
 
-export default function TestNotificationsPage() {
-  const { token, notification, requestPermission, getToken } =
-    useFirebaseMessaging();
-  const [tokenCopied, setTokenCopied] = useState(false);
-
-  const handleCopyToken = () => {
+export default function Home() {
+  const { token } = useNotification();
+  const [tokenDisplay, setTokenDisplay] = useState('No token yet');
+  
+  useEffect(() => {
     if (token) {
-      navigator.clipboard.writeText(token);
-      setTokenCopied(true);
-      setTimeout(() => setTokenCopied(false), 2000);
+      setTokenDisplay(token.substring(0, 12) + '...' + token.substring(token.length - 12));
+    }
+  }, [token]);
+
+  const testBackgroundNotification = async () => {
+    try {
+      // This would typically be done from your backend
+      // This is just for testing purposes
+      if (!token) {
+        alert('No notification token available. Please enable notifications first.');
+        return;
+      }
+
+      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `key=${process.env.NEXT_PUBLIC_FIREBASE_SERVER_KEY}`
+        },
+        body: JSON.stringify({
+          to: token,
+          notification: {
+            title: 'Background Test',
+            body: 'This is a test background notification',
+            icon: '/icons/notification-icon.png'
+          },
+          data: {
+            url: '/details',
+            someData: 'Additional data here'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send test notification');
+      }
+
+      alert('Test notification sent! Close the app to see the background notification.');
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      alert('Error sending test notification. Check console for details.');
     }
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Test Notifications</h1>
-
-      <div className="space-y-6">
-        <div className="p-4 border rounded-lg">
-          <h2 className="text-lg font-semibold mb-2">
-            Step 1: Request Permission
-          </h2>
-          <button
-            onClick={requestPermission}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Request Notification Permission
-          </button>
-        </div>
-
-        <div className="p-4 border rounded-lg">
-          <h2 className="text-lg font-semibold mb-2">Step 2: Get FCM Token</h2>
-          <button
-            onClick={getToken}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors mb-4"
-          >
-            Get FCM Token
-          </button>
-
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
+        <div className="flex flex-col items-center justify-center w-full space-y-8">
+          <h1 className="text-4xl font-bold">Firebase Notifications</h1>
+          
+          <div className="flex flex-col items-center space-y-4">
+            <NotificationPermissionButton />
+            <NotificationDisplay />
+          </div>
+          
           {token && (
-            <div className="mt-4">
-              <p className="mb-2 font-medium">Your FCM Token:</p>
-              <div className="flex items-center">
-                <input
-                  type="text"
-                  value={token}
-                  readOnly
-                  className="flex-1 p-2 border rounded-md dark:bg-black text-white bg-gray-50 text-sm overflow-x-auto"
-                />
-                <button
-                  onClick={handleCopyToken}
-                  className="ml-2 px-3 py-2 dark:bg-black text-white border bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                >
-                  {tokenCopied ? "Copied!" : "Copy"}
-                </button>
-              </div>
-              <p className="mt-2 text-sm text-gray-600">
-                Use this token to send a test notification from the Firebase
-                console or your backend.
+            <div className="mt-8 text-center">
+              <p className="mb-2">Your FCM Token:</p>
+              <code className="bg-gray-100 p-2 rounded text-xs break-all max-w-md">
+                {tokenDisplay}
+              </code>
+              <p className="mt-2 text-sm text-gray-500">
+                Use this token to send notifications to this device
               </p>
             </div>
           )}
-        </div>
-
-        <div className="p-4 border rounded-lg">
-          <h2 className="text-lg font-semibold mb-2">
-            Step 3: Test from Firebase Console
-          </h2>
-          <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>Go to the Firebase Console</li>
-            <li>Select your project</li>
-            <li>Go to "Messaging" in the sidebar</li>
-            <li>Click "Send your first message"</li>
-            <li>Choose "Send test message"</li>
-            <li>
-              Paste your FCM token in the "Add an FCM registration token" field
-            </li>
-            <li>Fill in the notification details</li>
-            <li>Click "Test"</li>
-          </ol>
-        </div>
-
-        {notification && (
-          <div className="p-4 border rounded-lg">
-            <h2 className="text-lg font-semibold mb-2">
-              Notification Received
-            </h2>
-            <p className="font-medium">{notification.title}</p>
-            <p>{notification.body}</p>
-            {notification.image && (
-              <img
-                src={notification.image}
-                alt="Notification"
-                className="mt-2 max-w-xs"
-              />
-            )}
+          
+          <div className="mt-8">
+            <button
+              onClick={testBackgroundNotification}
+              disabled={!token}
+              className="px-4 py-2 bg-purple-600 text-white rounded disabled:bg-gray-300"
+            >
+              Test Background Notification
+            </button>
+            <p className="mt-2 text-sm text-gray-500">
+              Note: This button will only work if you have a server key set up in your environment variables
+            </p>
           </div>
-        )}
+          
+          <div className="mt-12 p-4 bg-yellow-50 rounded-lg max-w-2xl text-sm">
+            <h3 className="font-bold text-yellow-800 mb-2">Important Notes:</h3>
+            <ul className="list-disc pl-5 space-y-2 text-yellow-700">
+              <li>Background notifications require a service worker to be installed.</li>
+              <li>For production use, send notifications from your server, not from client-side.</li>
+              <li>Your browser may throttle notifications if too many are sent.</li>
+              <li>Make sure to have both notification and data payloads in your FCM messages.</li>
+              <li>Test background notifications by closing this tab or browser after clicking the test button.</li>
+            </ul>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

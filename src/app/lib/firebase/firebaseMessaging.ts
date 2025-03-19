@@ -5,7 +5,7 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 
 let firebaseApp: FirebaseApp | undefined;
-let messaging: Messaging | undefined;
+export let messaging: Messaging | undefined;
 
 // Initialize Firebase if it hasn't been already
 const initializeFirebase = () => {

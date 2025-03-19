@@ -1,87 +1,150 @@
-// Step 3: Create a notification component
 // components/ui/Notification.tsx
+import React, { createContext, useContext, useState, useEffect } from "react";
+import useFirebaseMessaging from "../hooks/useFirebaseMessaging";
 
-'use client';
+interface NotificationContextType {
+  token: string | null;
+  requestPermission: () => Promise<boolean>;
+  notificationMessage: any;
+  isTokenLoading: boolean;
+}
 
-import React, { useEffect } from 'react';
-import { useFirebaseMessaging } from '../hooks/useFirebaseMessaging';
+const NotificationContext = createContext<NotificationContextType>({
+  token: null,
+  requestPermission: async () => false,
+  notificationMessage: null,
+  isTokenLoading: false,
+});
 
-export const Notification: React.FC = () => {
-  const { 
-    notification, 
-    notificationPermission, 
-    requestPermission, 
-    clearNotification 
-  } = useFirebaseMessaging();
+export const useNotification = () => useContext(NotificationContext);
 
-  // Auto-hide notification after 5 seconds
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { token, notificationMessage, requestPermission, isTokenLoading } =
+    useFirebaseMessaging();
+  const [hasPermission, setHasPermission] = useState(false);
+
+  // Check notification permission on component mount
   useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => {
-        clearNotification();
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [notification, clearNotification]);
+    const checkPermission = async () => {
+      if (typeof window !== "undefined" && "Notification" in window) {
+        const permission = Notification.permission;
+        setHasPermission(permission === "granted");
+      }
+    };
 
-  if (!notification) return null;
+    checkPermission();
+  }, []);
 
   return (
-    <div className="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg overflow-hidden z-50 border border-gray-200">
-      <div className="p-4">
-        <div className="flex items-start">
-          {notification.image && (
-            <div className="flex-shrink-0 mr-3">
-              <img 
-                className="h-10 w-10 rounded-full" 
-                src={notification.image} 
-                alt="Notification image" 
-              />
-            </div>
-          )}
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-gray-900">
-              {notification.title}
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {notification.body}
-            </p>
-          </div>
-          <button
-            onClick={clearNotification}
-            className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-500"
-          >
-            <span className="sr-only">Close</span>
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
+    <NotificationContext.Provider
+      value={{ token, requestPermission, notificationMessage, isTokenLoading }}
+    >
+      {children}
+    </NotificationContext.Provider>
+  );
+};
+
+export const NotificationPermissionButton: React.FC = () => {
+  const { requestPermission, token, isTokenLoading } = useNotification();
+  const [permissionStatus, setPermissionStatus] = useState<string>("");
+
+  useEffect(() => {
+    // Check permission status on component mount
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setPermissionStatus(Notification.permission);
+    }
+  }, [token]);
+
+  const handleRequestPermission = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      setPermissionStatus("granted");
+    } else {
+      setPermissionStatus(Notification.permission);
+    }
+  };
+
+  return (
+    <div className="notification-permission">
+      <button
+        onClick={handleRequestPermission}
+        disabled={permissionStatus === "granted" || isTokenLoading}
+        className={`px-4 py-2 rounded ${
+          permissionStatus === "granted"
+            ? "bg-green-500 text-white"
+            : "bg-blue-500 hover:bg-blue-600 text-white"
+        }`}
+      >
+        {isTokenLoading
+          ? "Loading..."
+          : permissionStatus === "granted"
+          ? "Notifications Enabled"
+          : "Enable Notifications"}
+      </button>
+
+      {token && (
+        <div className="mt-2 text-sm text-gray-500">
+          <p>Notification token obtained!</p>
         </div>
-      </div>
+      )}
+
+      {permissionStatus === "denied" && (
+        <div className="mt-2 text-sm text-red-500">
+          <p>
+            Notification permission denied. Please enable notifications in your
+            browser settings.
+          </p>
+        </div>
+      )}
     </div>
   );
 };
 
-// Step 4: Create a notification permission button
-// components/ui/NotificationPermissionButton.tsx
-export const NotificationPermissionButton: React.FC = () => {
-  const { notificationPermission, requestPermission } = useFirebaseMessaging();
-  
-  const handleRequestPermission = async () => {
-    await requestPermission();
-  };
-  
-  if (notificationPermission === 'granted') {
+export const NotificationDisplay: React.FC = () => {
+  const { notificationMessage } = useNotification();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (notificationMessage) {
+      setVisible(true);
+      // Hide notification after 5 seconds
+      const timer = setTimeout(() => {
+        setVisible(false);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [notificationMessage]);
+
+  if (!notificationMessage || !visible) {
     return null;
   }
-  
+
   return (
-    <button 
-      onClick={handleRequestPermission}
-      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-    >
-      Enable Notifications
-    </button>
+    <div className="fixed top-5 right-5 w-80 bg-white shadow-lg rounded-lg p-4 border-l-4 border-blue-500 z-50">
+      <div className="flex justify-between">
+        <h3 className="font-bold text-gray-800">
+          {notificationMessage.title || "New Notification"}
+        </h3>
+        <button
+          onClick={() => setVisible(false)}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          &times;
+        </button>
+      </div>
+      <p className="text-gray-600 mt-2">
+        {notificationMessage.body || "You have a new notification"}
+      </p>
+      {notificationMessage.image && (
+        <img
+          src={notificationMessage.image}
+          alt="Notification"
+          className="mt-2 w-full rounded"
+        />
+      )}
+    </div>
   );
 };
